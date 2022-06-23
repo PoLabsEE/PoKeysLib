@@ -594,7 +594,17 @@ int32_t PK_DigitalCounterGet(sPoKeysDevice* device)
 	}
 
 	return PK_OK;
-}              
+}
+
+int32_t PK_DigitalCounterClear(sPoKeysDevice* device)
+{
+    if (device == NULL) return PK_ERR_NOT_CONNECTED;
+
+    CreateRequest(device->request, 0x1D, 0, 0, 0, 0);
+    if (SendRequest(device) != PK_OK) return PK_ERR_TRANSFER;
+
+    return PK_OK;
+}
 
 int32_t PK_PWMConfigurationSet(sPoKeysDevice* device)
 {
@@ -715,6 +725,12 @@ int32_t PK_PoExtBusSet(sPoKeysDevice* device)
         device->request[8 + i] = device->PoExtBusData[i];
 	}
 	if (SendRequest(device) != PK_OK) return PK_ERR_TRANSFER;
+
+	// Check that the device has accepted the data
+	if (memcmp(device->PoExtBusData, device->response + 8, device->info.iPoExtBus) != 0)
+	{
+		return PK_ERR_GENERIC;
+	}
 
 	return PK_OK;
 }

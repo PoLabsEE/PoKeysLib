@@ -6,8 +6,9 @@ QT -= core gui
 # Create a configuration for 32-bit and 64-bit libraries:
 # 32-bit: "CONFIG+=makeDLL DLL32"
 # 64-bit: "CONFIG+=makeDLL DLL64"        not needed: "QMAKE_LFLAGS_WINDOWS+=/NODEFAULTLIB:LIBCMT"
+#CONFIG+=makeDLL DLL32
 
-CONFIG += BUILD_WITH_LIBUSB
+#CONFIG += BUILD_WITH_LIBUSB
 
 makeDLL {
     DLL32 {
@@ -56,7 +57,8 @@ SOURCES += PoKeysLibCore.c \
     PoKeysLibUART.c \
     PoKeysLibCAN.c \
     PoKeysLibWS2812.c \
-    PoKeysLibFailsafe.c
+    PoKeysLibFailsafe.c \
+    PoKeysLibDevicePoKeys57Industrial.c
 
 win32: SOURCES += hid.c
 
@@ -64,6 +66,7 @@ HEADERS += PoKeysLibCoreSockets.h \
     PoKeysLibCore.h \
     hidapi.h \
     PoKeysLib.h \
+    PoKeysLibDevicePoKeys57Industrial.h
 
 win32 {
     LIBS += -lsetupapi -lWs2_32 -liphlpapi

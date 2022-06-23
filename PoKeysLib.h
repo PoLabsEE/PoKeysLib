@@ -150,7 +150,8 @@ typedef enum
     PK_DeviceMask_58            = (1<<21),
     PK_DeviceMask_PoPLC58       = (1<<22),
 
-    PK_DeviceMask_PoKeys16RF    = (1<<23)
+    PK_DeviceMask_PoKeys16RF    = (1<<23),
+
 } ePK_DeviceTypeMask;
 
 typedef enum
@@ -174,6 +175,8 @@ typedef enum
     PK_DeviceID_PoKeys57CNC   = 32,
 	PK_DeviceID_PoKeys57CNCdb25 = 38,
     PK_DeviceID_PoKeys57Utest = 39,
+
+    PK_DeviceID_LiniTester    = 43,
 
 
     PK_DeviceID_57U_v0        = 28,
@@ -267,6 +270,7 @@ enum ePK_PEv2_AxisConfig
     PK_AC_POSITION_MODE      = (1 << 3),       // Internal motion planner for this axis is in position mode
     PK_AC_INVERTED_HOME      = (1 << 4),       // Axis homing direction is inverted
     PK_AC_SOFT_LIMIT_ENABLED = (1 << 5),       // Use soft-limits for this axis
+	PK_AC_FAST_OUTPUT		 = (1 << 6),       // Fast output mode
 	PK_AC_ENABLED_MASKED     = (1 << 7)        // Use output enable pin masking
 };
 
@@ -280,6 +284,12 @@ enum ePK_PEv2_AxisSwitchOptions
     PK_ASO_SWITCH_INVERT_LIMIT_N = (1 << 5),   // Invert limit- switch polarity
     PK_ASO_SWITCH_INVERT_LIMIT_P = (1 << 6),   // Invert limit+ switch polarity
     PK_ASO_SWITCH_INVERT_HOME    = (1 << 7)    // Invert home switch polarity
+};
+
+enum ePK_PEv2_AxisSignalOptions
+{
+	PK_ASO_INVERT_STEP = (1 << 0),				// Invert step signal (active-low)
+	PK_ASO_INVERT_DIRECTION = (1 << 1) 			// Invert direction signal
 };
 
 
@@ -408,7 +418,7 @@ typedef struct
     uint8_t         AxisEnableOutputPins[8];   // Axis enabled output pin (0 for external dedicated output)
 	uint32_t		HomeBackOffDistance[8];	   // Back-off distance after homing
     uint16_t        MPGjogDivider[8];          // Divider for the MPG jogging (enhanced encoder resolution)
-    uint8_t         reserved[8];               // Motion buffer entries - moved further down...
+	uint8_t			AxisSignalOptions[8];	   // Axis signal options (invert step or direction)
     uint8_t         ReservedSafety[8];
 
     // ------ 64-bit region boundary ------
@@ -432,7 +442,9 @@ typedef struct
 
     uint8_t         AxisEnabledMask;           // Bit-mapped ouput enabled mask
     uint8_t         EmergencyInputPin;
-    uint8_t         reserved2;
+    uint8_t         SyncFastOutputsAxisID;	   // Enable synced outputs and select pulse engine axis to map the data to (1-based)
+
+	uint8_t			SyncFastOutputsMapping[8]; // Output mapping for the synced outputs
 
     // ------ 64-bit region boundary ------
     uint8_t         param1;                    // Parameter 1 value
@@ -464,11 +476,15 @@ typedef struct
     float           ProbeSpeed;                // Probe speed (ratio of the maximum speed)
     float 			reservedf;
 
+	uint32_t		DebugValues[16];
+
 	uint16_t		BacklashWidth[8];			// half of real backlash width
 	int16_t			BacklashRegister[8];		// current value of the backlash register
 	uint8_t			BacklashAcceleration[8];	// in pulses per ms^2
 	uint8_t			BacklashCompensationEnabled;
-	uint8_t			reserved_back[3];
+	uint8_t			BacklashCompensationMaxSpeed;
+
+	uint8_t			reserved_back[2];
 
 	uint8_t			TriggerPreparing;
 	uint8_t			TriggerPrepared;
@@ -478,11 +494,17 @@ typedef struct
 	int32_t			SpindleSpeedEstimate;
 	int32_t			SpindlePositionError;
 	uint32_t		SpindleRPM;
+	uint32_t		spindleIndexCounter;
 
 	uint8_t			DedicatedLimitNInputs;
 	uint8_t			DedicatedLimitPInputs;
 	uint8_t			DedicatedHomeInputs;
 	uint8_t			TriggerIngnoredAxisMask;
+
+	uint32_t		EncoderIndexCount;
+	uint32_t		EncoderTicksPerRotation;
+	uint32_t		EncoderVelocity;
+	//uint32_t		reservedEnc;
 
 } sPoKeysPEv2;
 
@@ -607,7 +629,8 @@ typedef struct
     uint8_t matrixKBconfiguration;             // Matrix keyboard configuration (set to 1 to enable matrix keyboard support)
     uint8_t matrixKBwidth;                     // Matrix keyboard width (number of columns)
     uint8_t matrixKBheight;                    // Matrix keyboard height (number of rows)
-    uint8_t reserved[5];                       // placeholder
+	uint8_t matrixKBScanningDecimation;		   // Scanning speed decimation
+    uint8_t reserved[4];                       // placeholder
     uint8_t matrixKBcolumnsPins[8];            // List of matrix keyboard column connections
     uint8_t matrixKBrowsPins[16];              // List of matrix keyboard row connections
     uint8_t macroMappingOptions[128];          // Selects between direct key mapping and mapping to macro sequence for each key (assumes fixed width of 8 columns)
@@ -673,7 +696,7 @@ typedef struct
     uint32_t DataMemorySize;
     uint32_t CodeMemorySize;
     uint32_t Version;
-    uint32_t reserved;
+    uint32_t DeviceType;
 } sPoILinfo;
 
 // PoIL stack info
@@ -717,7 +740,7 @@ typedef struct
     uint32_t         CoreState;
     uint32_t         CoreDebugMode;
     uint32_t         CoreDebugBreakpoint;
-    uint32_t 		 reserved0;
+    uint32_t 		 ExternalCoreID;
 
     sPoILStack       functionStack;
     sPoILStack       dataStack;
@@ -839,6 +862,7 @@ typedef struct
     uint8_t bFailSafePWM[6];                                 // PWM outputs values
 } sPoKeysFailsafeSettings;
 
+
 // Main PoKeys structure
 typedef struct
 {
@@ -864,7 +888,7 @@ typedef struct
     ALIGN_TEST(9)
     sPoNETmodule              PoNETmodule;
     ALIGN_TEST(10)
-    sPoILStatus               PoIL;
+    sPoILStatus               PoIL;    
     ALIGN_TEST(11)
     sPoKeysRTC                RTC;
     ALIGN_TEST(2)
@@ -902,7 +926,6 @@ typedef struct
 } sPoKeysDevice;
 
 
-
 // Enumerate USB devices. Returns number of USB devices detected.
 POKEYSDECL int32_t PK_EnumerateUSBDevices(void);
 POKEYSDECL int32_t PK_EnumerateFastUSBDevices(void);
@@ -917,6 +940,8 @@ POKEYSDECL sPoKeysDevice* PK_ConnectToDevice(uint32_t deviceIndex);
 POKEYSDECL sPoKeysDevice* PK_ConnectToDeviceWSerial(uint32_t serialNumber, uint32_t checkForNetworkDevicesAndTimeout);
 // Same as above, but uses UDP for connection
 POKEYSDECL sPoKeysDevice* PK_ConnectToDeviceWSerial_UDP(uint32_t serialNumber, uint32_t checkForNetworkDevicesAndTimeout);
+// And a bit more low-level version with additional flags possible
+POKEYSDECL sPoKeysDevice* PK_ConnectToPoKeysDevice(uint32_t serialNumber, uint32_t checkForNetworkDevicesAndTimeout, uint32_t flags);
 
 
 // Connect to a network PoKeys device. Returns NULL if the connection is not successfull
@@ -957,6 +982,9 @@ POKEYSDECL int32_t PK_DeviceActivation(sPoKeysDevice * device);
 // Clear activated options in the device
 POKEYSDECL int32_t PK_DeviceActivationClear(sPoKeysDevice * device);
 
+// Read device's log
+POKEYSDECL int32_t PK_ReadDeviceLog(sPoKeysDevice * device, uint16_t * logBuffer, int32_t * logEntries);
+
 // Configure network device - uses structure device->netDeviceData
 POKEYSDECL int32_t PK_NetworkConfigurationSet(sPoKeysDevice* device);
 
@@ -992,6 +1020,8 @@ POKEYSDECL int32_t PK_PoExtBusGet(sPoKeysDevice* device);
 
 // Get digital counter values
 POKEYSDECL int32_t PK_DigitalCounterGet(sPoKeysDevice* device);
+// Clear digital counter values
+POKEYSDECL int32_t PK_DigitalCounterClear(sPoKeysDevice* device);
 // Check whether digital counter is available for the specified pin. Return True if digital counter is supported.
 POKEYSDECL int32_t PK_IsCounterAvailable(sPoKeysDevice* device, uint8_t pinID);
 // Check digital counter availability by device, defined by device type mask (see ePK_DeviceTypeMask)
@@ -1113,6 +1143,7 @@ POKEYSDECL int32_t PK_PEv2_ProbingFinish(sPoKeysDevice * device);
 // Same as previous command, except for pulse engine states not being reset to 'STOPPED'
 POKEYSDECL int32_t PK_PEv2_ProbingFinishSimple(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_SyncedPWMSetup(sPoKeysDevice * device, uint8_t enabled, uint8_t srcAxis, uint8_t dstPWMChannel);
+POKEYSDECL int32_t PK_PEv2_SyncOutputsSetup(sPoKeysDevice * device);
 
 POKEYSDECL int32_t PK_PEv2_ThreadingPrepareForTrigger(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_ThreadingForceTriggerReady(sPoKeysDevice * device);
@@ -1248,6 +1279,11 @@ POKEYSDECL uint32_t PK_SL_PWMConfig(sPoKeysDevice* device, uint8_t index);
 POKEYSDECL int32_t PK_SL_PWM_SetPeriod(sPoKeysDevice* device, uint32_t PWMperiod);
 POKEYSDECL int32_t PK_SL_PWM_SetChannelEnabled(sPoKeysDevice* device, uint8_t channel, uint8_t enabled, uint32_t defaultDuty);
 POKEYSDECL int32_t PK_SL_PWM_SetDuty(sPoKeysDevice* device, uint8_t channel, uint32_t duty);
+
+POKEYSDECL int32_t PK_OEM_Martelli_SetMode(sPoKeysDevice* device, uint8_t mode);
+POKEYSDECL int32_t PK_OEM_Martelli_SetThreshold(sPoKeysDevice* device, uint32_t threshold);
+POKEYSDECL int32_t PK_OEM_Martelli_SetRate(sPoKeysDevice* device, uint32_t rate);
+
 
 extern int32_t LastRetryCount;
 extern int32_t LastWaitCount;

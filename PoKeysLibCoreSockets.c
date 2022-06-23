@@ -238,7 +238,7 @@ int32_t PK_SearchNetworkDevices(sPoKeysNetworkDeviceSummary * devices, uint32_t 
 
     t = timeout;
 
-    debug_printf("Enumerating network PoKeys devices...\n");
+    debug_printf("Enumerating network PoKeys devices for %d ms...\n", timeout);
 
 #ifdef WIN32
 	if (InitWinsock() != 0) 
@@ -342,8 +342,12 @@ int32_t PK_SearchNetworkDevices(sPoKeysNetworkDeviceSummary * devices, uint32_t 
 
         if (status < 0)
         {
-            debug_printf("Error receiving data...\n");
-            break;
+            int iError = WSAGetLastError();
+
+            if (iError != WSAECONNRESET) {
+                debug_printf("Error receiving data %d / %ld...\n", status, iError);
+                break;
+            }
         }
 
         // Get IP address and receive message

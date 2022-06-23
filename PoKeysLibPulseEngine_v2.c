@@ -202,6 +202,7 @@ int32_t PK_PEv2_AxisConfigurationGet(sPoKeysDevice * device)
 	// MPG 1x mode here
 	pe->HomeBackOffDistance[pe->param1] = *(uint32_t*)(device->response + 45);
     pe->MPGjogDivider[pe->param1] = *(uint16_t*)(device->response + 49);
+	pe->AxisSignalOptions[pe->param1] = device->response[51];
 
     return PK_OK;
 }
@@ -251,6 +252,8 @@ int32_t PK_PEv2_AxisConfigurationSet(sPoKeysDevice * device)
 
 	*(uint32_t*)(device->request + 45) = pe->HomeBackOffDistance[pe->param1];
     *(uint16_t*)(device->request + 49) = pe->MPGjogDivider[pe->param1];
+
+	device->request[51] = pe->AxisSignalOptions[pe->param1];
 
     // Send request
     return SendRequest(device);
@@ -621,6 +624,10 @@ int32_t PK_PEv2_ThreadingStatusGet(sPoKeysDevice * device)
 	device->PEv2.SpindleRPM =			*(int32_t*)(device->response + 20);
 
 	device->PEv2.TriggerIngnoredAxisMask = device->response[24];
+
+	device->PEv2.spindleIndexCounter  = *(int32_t*)(device->response + 25);
+
+	memcpy(device->PEv2.DebugValues, device->response + 29, 35);
 	return PK_OK;
 
 }
@@ -663,6 +670,7 @@ int32_t PK_PEv2_BacklashCompensationSettings_Get(sPoKeysDevice * device)
 		device->PEv2.BacklashRegister[i] = *(int16_t*)(device->response + 40 + i * 2);
 	}
 	device->PEv2.BacklashCompensationEnabled = device->response[3];
+	device->PEv2.BacklashCompensationMaxSpeed = device->response[4];
 			
 	return PK_OK;
 }
@@ -673,7 +681,7 @@ int32_t PK_PEv2_BacklashCompensationSettings_Set(sPoKeysDevice * device)
     if (device == NULL) return PK_ERR_NOT_CONNECTED;
 
 	// Create request
-    CreateRequest(device->request, 0x85, 0x41, device->PEv2.BacklashCompensationEnabled, 0, 0);
+	CreateRequest(device->request, 0x85, 0x41, device->PEv2.BacklashCompensationEnabled, device->PEv2.BacklashCompensationMaxSpeed, 0);
 
 	for (i = 0; i < 8; i++)
 	{
@@ -699,6 +707,20 @@ int32_t PK_PEv2_SyncedPWMSetup(sPoKeysDevice * device, uint8_t enabled, uint8_t 
     if (SendRequest(device) != PK_OK) return PK_ERR_TRANSFER;
 
     return PK_OK;
+}
+
+int32_t PK_PEv2_SyncOutputsSetup(sPoKeysDevice * device)
+{
+	if (device == NULL) return PK_ERR_NOT_CONNECTED;
+
+	// Create request
+	CreateRequest(device->request, 0x85, 0x0B, device->PEv2.SyncFastOutputsAxisID > 0, device->PEv2.SyncFastOutputsAxisID - 1, 0);
+	memcpy(device->request + 8, device->PEv2.SyncFastOutputsMapping, 8);
+
+	// Send request
+	if (SendRequest(device) != PK_OK) return PK_ERR_TRANSFER;
+
+	return PK_OK;
 }
 
 int32_t PK_PoStep_ConfigurationGet(sPoKeysDevice * device)

@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from ctypes import *
+from os import devnull
 import sys
 import time
 
@@ -768,7 +769,7 @@ class PoKeysDevice:
     def __del__(self):
         self.libObj.PK_DisconnectDevice(self.device)
 
-    def ShowAllDevices(self):
+    def ShowAllDevices(self, searchEthernetTimeout = 0):
         devConnect = self.libObj.PK_ConnectToDevice
         devConnect.restype = sPoKeysDevicePtr
         
@@ -789,6 +790,69 @@ class PoKeysDevice:
                 print("Requested device not found!")
 
             self.libObj.PK_DisconnectDevice(testDev)
+
+        if searchEthernetTimeout > 0:
+            # Use the automatic device discovery to list Ethernet devices
+
+            elems = (sPoKeysNetworkDeviceSummary * 16)()
+            #self.STRUCT_ARRAY = cast(elems,POINTER(sPoKeysNetworkDeviceSummary))
+
+            t = c_uint(searchEthernetTimeout)
+
+            print(f"\nSearching Ethernet devices for {searchEthernetTimeout} ms...")
+            devNum = self.libObj.PK_EnumerateNetworkDevices(elems, t)
+            print(f"Found {devNum} devices")
+            print("-------------------------")
+            for d in elems[0:devNum]:
+                print(f"* Device {d.SerialNumber} @ {'.'.join([str(ip) for ip in d.IPaddress])}")
+
+                # Connect to the target device
+                devConnect = self.libObj.PK_ConnectToNetworkDevice
+                devConnect.restype = sPoKeysDevicePtr
+
+                testDev = devConnect(d)
+
+                try:
+                    print("  Ethernet device: " + str(testDev.contents.DeviceData.DeviceName.decode("ascii")) + " (" + str(testDev.contents.DeviceData.DeviceTypeName.decode("ascii")) + ")")
+                    print("   Serial number: " + str(testDev.contents.DeviceData.SerialNumber))
+                    print("   User ID: " + str(testDev.contents.DeviceData.UserID))
+                    print("   Firmware version: " + str(int(1 + testDev.contents.DeviceData.FirmwareVersionMajor / 16)) + "." +
+                                                str(testDev.contents.DeviceData.FirmwareVersionMajor % 16) + "." +
+                                                str(testDev.contents.DeviceData.FirmwareVersionMinor) + " [" + str(testDev.contents.DeviceData.BuildDate.decode("ascii")) + "]")
+                except ValueError:
+                    print("  Requested device not found!")
+                    continue
+
+                self.libObj.PK_DisconnectDevice(testDev)
+
+            print("------------------------\nConnect using the IP address only...")
+            # Connect to target devices using the IP address only
+            for d in elems[0:devNum]:
+                targetDev = sPoKeysNetworkDeviceSummary()
+                targetDev.IPaddress = d.IPaddress # Only the IP address is used to connect to the target device
+                targetDev.useUDP = 1
+
+                print(f"* Connecting to {'.'.join([str(ip) for ip in targetDev.IPaddress])}...")
+
+                # Connect to the target device
+                devConnect = self.libObj.PK_ConnectToNetworkDevice
+                devConnect.restype = sPoKeysDevicePtr
+
+                testDev = devConnect(d)
+
+                try:
+                    print("  Ethernet device: " + str(testDev.contents.DeviceData.DeviceName.decode("ascii")) + " (" + str(testDev.contents.DeviceData.DeviceTypeName.decode("ascii")) + ")")
+                    print("   Serial number: " + str(testDev.contents.DeviceData.SerialNumber))
+                    print("   User ID: " + str(testDev.contents.DeviceData.UserID))
+                    print("   Firmware version: " + str(int(1 + testDev.contents.DeviceData.FirmwareVersionMajor / 16)) + "." +
+                                                str(testDev.contents.DeviceData.FirmwareVersionMajor % 16) + "." +
+                                                str(testDev.contents.DeviceData.FirmwareVersionMinor) + " [" + str(testDev.contents.DeviceData.BuildDate.decode("ascii")) + "]")
+                except ValueError:
+                    print("  Requested device not found!")
+                    continue
+
+                self.libObj.PK_DisconnectDevice(testDev)
+                           
             
     def PK_ConnectToDeviceWSerial(self, serial, checkEthernet = 0, useUDP = True):
         self.Disconnect()

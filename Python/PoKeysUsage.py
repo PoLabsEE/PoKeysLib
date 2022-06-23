@@ -17,6 +17,7 @@
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 from PoKeys import *
+
 import time
 
 
@@ -25,10 +26,11 @@ deviceSerial = 45000
 
 
 # Load PoKeysLib dll library and list all PoKeys devices detected
-mydevice = PoKeysDevice("PoKeysLib.dll")
+mydevice = PoKeysDevice("./PoKeyslib.dll")
 print("List of detected devices ------------------------------------")
-mydevice.ShowAllDevices()
+mydevice.ShowAllDevices(1000)
 
+sys.exit()
 
 # Connect to a specific PoKeys device, use UDP connection if possible
 print("Connecting to the selected device...")
