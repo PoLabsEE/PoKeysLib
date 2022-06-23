@@ -30,7 +30,6 @@ mydevice = PoKeysDevice("./PoKeyslib.dll")
 print("List of detected devices ------------------------------------")
 mydevice.ShowAllDevices(1000)
 
-sys.exit()
 
 # Connect to a specific PoKeys device, use UDP connection if possible
 print("Connecting to the selected device...")
