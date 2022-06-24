@@ -342,12 +342,16 @@ int32_t PK_SearchNetworkDevices(sPoKeysNetworkDeviceSummary * devices, uint32_t 
 
         if (status < 0)
         {
+#ifdef WIN32
             int iError = WSAGetLastError();
 
             if (iError != WSAECONNRESET) {
                 debug_printf("Error receiving data %d / %ld...\n", status, iError);
                 break;
             }
+#else
+            break;
+#endif
         }
 
         // Get IP address and receive message
