@@ -22,7 +22,7 @@ import time
 
 
 # Enter the device's serial number here
-deviceSerial = 45000
+deviceSerial = 50001
 
 
 # Load PoKeysLib dll library and list all PoKeys devices detected
@@ -86,7 +86,7 @@ if testIO:
             print("Pin " + str(pin) + " (" + str(mydevice.device.contents.Pins[pin].PinFunction) + "): Digital value=" +
                                              str(mydevice.device.contents.Pins[pin].DigitalValueGet))
 
-testPoExtBus = True
+testPoExtBus = False
 if testPoExtBus:
 		mydevice.device.contents.PoExtBusData[0] = 0
 		mydevice.device.contents.PoExtBusData[1] = 127
@@ -126,7 +126,7 @@ if testPWM:
     mydevice.PK_PWMUpdate()
 
 
-testI2C = False
+testI2C = True
 if testI2C:
     # I2C commands
 
@@ -158,6 +158,9 @@ if testI2C:
           value = data[1] * 256 + data[0]
           print(int(getSignedNumber(value,16)))
 
+    if devices[0x48] == 1:
+        response = mydevice.PK_I2CWriteAndRead(0x48, [0x00], 1)
+        print(response)
 
 testSPI = False
 if testSPI:
@@ -324,7 +327,7 @@ def PEv2_example1(dev):
 
 
 
-testPE = True
+testPE = False
 if testPE:
     print("Testing Pulse engine...")
     mydevice.PK_PEv2_StatusGet()
@@ -363,7 +366,7 @@ print("Time: %02d:%02d:%02d" % (mydevice.device.contents.RTC.HOUR, mydevice.devi
 
 
 testEasySensors = False
-autoAdd1Wire = True
+autoAdd1Wire = False
 
 if testEasySensors:
     if mydevice.device.contents.info.iEasySensors > 0:

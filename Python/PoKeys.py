@@ -1239,6 +1239,28 @@ class PoKeysDevice:
     
         self.libObj.PK_I2CWriteStart(self.device, address, buf, numBytes)
     
+    # Execute write and read operation to the specified address
+    def PK_I2CWriteAndReadStart(self, address, buffer, bytesToRead):
+
+        # If user provided only single integer, transfer it...
+        if isinstance(buffer, int):
+          numBytes = 1
+          I2Cdata = c_ubyte * 1
+          buf = I2Cdata(buffer)
+
+        else:
+          # Construct a c_byte array of numBytes bytes
+          numBytes = len(buffer)
+          I2Cdata = c_ubyte * numBytes
+
+          # Copy the Python array to c_byte array
+          buf = I2Cdata()
+          for i in range(0, numBytes):
+            buf[i] = buffer[i]
+
+
+        self.libObj.PK_I2CWriteAndReadStart(self.device, address, buf, numBytes, bytesToRead)
+
     # Get write operation status
     def PK_I2CWriteStatusGet(self):
         status = c_uint8(0)
@@ -1300,10 +1322,30 @@ class PoKeysDevice:
             return data
           else:
             print("Error - returned " + hex(status))
-            return []
+            return None
 
         return [] 
     
+    def PK_I2CWriteAndRead(self, address, data, bytesToRead):
+        self.PK_I2CWriteAndReadStart(address, data, bytesToRead)
+        
+        # Wait for response
+        while True:
+          status = 0
+          if bytesToRead == 0:
+            status, data = self.PK_I2CWriteStatusGet()
+          else:
+            status, data = self.PK_I2CReadStatusGet()
+
+          if status == 0x10:
+            time.sleep(0.01)
+          elif status == 0x01:
+            return data
+          else:
+            print("Error - returned " + hex(status))
+            return None
+
+        return []
     
     # Execute bus scan
     def PK_I2CBusScanStart(self):
