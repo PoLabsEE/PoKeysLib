@@ -16,6 +16,8 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
+from tkinter.tix import Tree
+from tokenize import Triple
 from PoKeys import *
 
 import time
@@ -23,19 +25,29 @@ import time
 
 # Enter the device's serial number here
 deviceSerial = 50001
+deviceIP = None # or set the target device IP: deviceIP = "192.168.1.112"
 
 
 # Load PoKeysLib dll library and list all PoKeys devices detected
 mydevice = PoKeysDevice("./PoKeyslib.dll")
+
 print("List of detected devices ------------------------------------")
 mydevice.ShowAllDevices(1000)
 
 
-# Connect to a specific PoKeys device, use UDP connection if possible
-print("Connecting to the selected device...")
-if mydevice.PK_ConnectToDeviceWSerial(deviceSerial, 1, True) != 0:
-    print("Device not found, quitting!")
-    sys.exit(0)
+if deviceIP is None:
+    # Connect to a specific PoKeys device, use UDP connection
+    print(f"Connecting to the device {deviceSerial}...")
+    if not mydevice.PK_ConnectToDeviceWSerial(deviceSerial, 1, True):
+        print("Device not found, quitting!")
+        sys.exit(0)
+else:
+    # Connect to a specific PoKeys device, use UDP connection
+    print(f"Connecting to the device {deviceIP}...")
+    if not mydevice.PK_ConnectToDevice_IP(deviceIP, True):
+        print("Device not found, quitting!")
+        sys.exit(0)
+
 
 
 def dump(name, obj):
@@ -49,11 +61,14 @@ def dump(name, obj):
 
 # Read pin configuration
 mydevice.PK_PinConfigurationGet()
-
+mydevice.PK_PoILGetState()
+mydevice.PK_PEv2_StatusGet()
+mydevice.PK_PEv2_BacklashCompensationSettings_Get()
 
 # Pin I/O...
-testIO = False
+testIO = True
 if testIO:
+    print("Running IO test...")
     # Set pin 1 as digital output
     mydevice.device.contents.Pins[0].PinFunction = ePK_PinCap.PK_PinCap_digitalOutput
 
@@ -86,15 +101,17 @@ if testIO:
             print("Pin " + str(pin) + " (" + str(mydevice.device.contents.Pins[pin].PinFunction) + "): Digital value=" +
                                              str(mydevice.device.contents.Pins[pin].DigitalValueGet))
 
-testPoExtBus = False
+testPoExtBus = True
 if testPoExtBus:
-		mydevice.device.contents.PoExtBusData[0] = 0
-		mydevice.device.contents.PoExtBusData[1] = 127
-		mydevice.device.contents.PoExtBusData[2] = 255
-		mydevice.PK_PoExtBusSet()
+    print("Running PoExtBus test...")
+    mydevice.device.contents.PoExtBusData[0] = 0
+    mydevice.device.contents.PoExtBusData[1] = 127
+    mydevice.device.contents.PoExtBusData[2] = 255
+    mydevice.PK_PoExtBusSet()
 		
-testPWM = False        
+testPWM = True    
 if testPWM:
+    print("Running PWM test...")
     # Set PWM outputs
     # Set pins 17-22 as inactive pins
     for pin in range(16, 21):
@@ -128,6 +145,7 @@ if testPWM:
 
 testI2C = True
 if testI2C:
+    print("Running I2C test...")
     # I2C commands
 
     # Scan I2C bus 
@@ -162,8 +180,9 @@ if testI2C:
         response = mydevice.PK_I2CWriteAndRead(0x48, [0x00], 1)
         print(response)
 
-testSPI = False
+testSPI = True
 if testSPI:
+    print("Running SPI test...")
     mydevice.PK_SPIConfigure(250, 0)        # 100 kHz clock, default frame
     dataOut = [ 1, 2, 3, 4, 5, 6 ]
     dataIn = mydevice.PK_SPI(dataOut, 8)    # Use pin 8 as chip select  
@@ -327,9 +346,9 @@ def PEv2_example1(dev):
 
 
 
-testPE = False
+testPE = True
 if testPE:
-    print("Testing Pulse engine...")
+    print("Running Pulse engine test...")    
     mydevice.PK_PEv2_StatusGet()
     PE = mydevice.device.contents.PEv2
 
@@ -358,6 +377,7 @@ if testPE:
     
 
 # Read RTC
+print("Running RTC test...")
 mydevice.PK_RTCGet()
 print("Time: %02d:%02d:%02d" % (mydevice.device.contents.RTC.HOUR, mydevice.device.contents.RTC.MIN, mydevice.device.contents.RTC.SEC))
 
@@ -365,10 +385,11 @@ print("Time: %02d:%02d:%02d" % (mydevice.device.contents.RTC.HOUR, mydevice.devi
 
 
 
-testEasySensors = False
+testEasySensors = True
 autoAdd1Wire = False
 
 if testEasySensors:
+    print("Running EasySensors test...")
     if mydevice.device.contents.info.iEasySensors > 0:
 
         print("Retrieving sensor configuration...")
@@ -381,6 +402,7 @@ if testEasySensors:
         
         # Print the configuration
         for i in range(mydevice.device.contents.info.iEasySensors):
+            print(f"EasySensor {i}:")
             S = mydevice.device.contents.EasySensors[i]
 
             if S.sensorType != 0:

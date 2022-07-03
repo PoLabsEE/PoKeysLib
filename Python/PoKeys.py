@@ -316,7 +316,14 @@ class sPoKeysPEv2(Structure):
         ("PinLimitMSwitch", c_uint8*8),        # Limit- switch pin (0 for external dedicated input)
         ("PinLimitPSwitch", c_uint8*8),        # Limit+ switch pin (0 for external dedicated input)
         ("AxisEnableOutputPins", c_uint8*8),   # Axis enabled output pin (0 for external dedicated output)
-        ("reserved", c_uint8*56),              # Motion buffer entries - moved further down...
+
+        ("HomeBackOffDistance", c_uint32*8),   # Back-off distance after homing
+        ("MPGjogDivider", c_uint16*8),         # Divider for the MPG jogging (enhanced encoder resolution)
+        
+        ("FilterProbeInput", c_uint8),         # Filter for the probe input
+        ("reserved", c_uint8*7),
+
+        ("AxisSignalOptions", c_uint8*8),      # Axis signal options (invert step or direction)
         ("ReservedSafety", c_uint8*8),
 
             # ------ 64-bit region boundary ------
@@ -340,7 +347,8 @@ class sPoKeysPEv2(Structure):
 
         ("AxisEnabledMask", c_uint8),           # Bit-mapped ouput enabled mask
         ("EmergencyInputPin", c_uint8),
-        ("reserved2", c_uint8),
+        ("SyncFastOutputsAxisID", c_uint8),
+        ("SyncFastOutputsMapping", c_uint8*8),
 
             # ------ 64-bit region boundary ------
         ("param1", c_uint8),                    # Parameter 1 value
@@ -365,18 +373,22 @@ class sPoKeysPEv2(Structure):
         ("ProbeInputPolarity", c_uint8),        # Probe input polarity
         ("ProbeStatus", c_uint8),               # Probe status (probe completion bit-mapped status)
 
-                                                # ------ 64-bit region 
+        # ------ 64-bit region 
         ("MotionBuffer", c_uint8*448),          # Motion buffer entries
 
-            # ------ 64-bit region boundary ------
+        # ------ 64-bit region boundary ------
         ("ProbeSpeed", c_float),                # Probe speed (ratio of the maximum speed)
         ("reservedf", c_float),
+
+        ("DebugValues", c_uint32*16),        
 
         ("BacklashWidth", c_uint16*8),          # Half of real backlash width
         ("BacklashRegister", c_int16*8),        # Current value of the backlash register
         ("BacklashAcceleration", c_uint8*8),    # in pulses per ms^2
         ("BacklashCompensationEnabled", c_uint8),
-        ("reserved_back", c_uint8*3),
+        ("BacklashCompensationMaxSpeed", c_uint8),
+        
+        ("reserved_back", c_uint8*2),
 
         ("TriggerPreparing", c_uint8),
         ("TriggerPrepared", c_uint8),
@@ -386,11 +398,16 @@ class sPoKeysPEv2(Structure):
         ("SpindleSpeedEstimate", c_int32),
         ("SpindlePositionError", c_int32),
         ("SpindleRPM", c_uint32),
+        ("spindleIndexCounter", c_uint32),
 
         ("DedicatedLimitNInputs", c_uint8),
         ("DedicatedLimitPInputs", c_uint8),
         ("DedicatedHomeInputs", c_uint8),
-        ("TriggerIngnoredAxisMask", c_uint8)]     
+        ("TriggerIngnoredAxisMask", c_uint8),
+
+        ("EncoderIndexCount", c_uint32),
+        ("EncoderTicksPerRotation", c_uint32),
+        ("EncoderVelocity", c_uint32)]
 
 
 # PoStep driver configuration
@@ -508,7 +525,8 @@ class sMatrixKeyboard(Structure):
         ("matrixKBconfiguration", c_uint8),  # Matrix keyboard configuration (set to 1 to enable matrix keyboard support)
         ("matrixKBwidth", c_uint8),    # Matrix keyboard width (number of columns)
         ("matrixKBheight", c_uint8),    # Matrix keyboard height (number of rows)
-        ("reserved", c_uint8*5),      # placeholder
+        ("matrixKBScanningDecimation", c_uint8),    # Scanning speed decimation
+        ("reserved", c_uint8*4),      # placeholder
         ("matrixKBcolumnsPins", c_uint8 * 8),  # List of matrix keyboard column connections
         ("matrixKBrowsPins", c_uint8 * 16),  # List of matrix keyboard row connections
         ("macroMappingOptions", c_uint8 * 128),    # Selects between direct key mapping and mapping to macro sequence for each key (assumes fixed width of 8 columns)
@@ -608,7 +626,7 @@ class sPoILStatus(Structure):
         ("CoreState", c_uint32),
         ("CoreDebugMode", c_uint32),
         ("CoreDebugBreakpoint", c_uint32),
-        ("reserved0", c_uint32),
+        ("ExternalCoreID", c_uint32),
 
         ("functionStack", sPoILStack),
         ("dataStack", sPoILStack),
@@ -691,6 +709,18 @@ class sPoKeysOtherPeripherals(Structure):
         ("AnalogRCFilter", c_uint32) ]
 
 
+# Failsafe settings
+class sPoKeysFailsafeSettings(Structure):
+    _fields_ = [
+        ("bFailSafeEnabled", c_uint8),          # Failsafe enabled and timeout setting (0 disabled other define timeout period in 100ms steps)
+        ("bFailSafePeripherals", c_uint8),      # Bit-mapped enabled peripherals (0 - digital IO, 1 - PoExtBus, 2 - PWM, 3 - Pulse engine)
+        ("padding1", c_uint8*6),
+        ("bFailSafeIO", c_uint8 * 7),           # Digital outputs values
+        ("padding2", c_uint8),
+        ("bFailSafePoExtBus", c_uint8*10),      # PoExtBus outputs values
+        ("bFailSafePWM", c_uint8*6)]            # PWM outputs values
+
+
 # Main PoKeys structure
 class sPoKeysDevice(Structure):
     _fields_ = [
@@ -718,6 +748,7 @@ class sPoKeysDevice(Structure):
         ("EasySensors", POINTER(sPoKeysEasySensor)),    # EasySensors array
 
         ("otherPeripherals", sPoKeysOtherPeripherals),
+        ("failsafeSettings", sPoKeysFailsafeSettings),
         
         ("FastEncodersConfiguration", c_uint8),    # Fast encoders configuration, invert settings and 4x sampling (see protocol specification for details)
         ("FastEncodersOptions", c_uint8),      # Fast encoders additional options
@@ -838,7 +869,7 @@ class PoKeysDevice:
                 devConnect = self.libObj.PK_ConnectToNetworkDevice
                 devConnect.restype = sPoKeysDevicePtr
 
-                testDev = devConnect(d)
+                testDev = devConnect(targetDev)
 
                 try:
                     print("  Ethernet device: " + str(testDev.contents.DeviceData.DeviceName.decode("ascii")) + " (" + str(testDev.contents.DeviceData.DeviceTypeName.decode("ascii")) + ")")
@@ -868,10 +899,37 @@ class PoKeysDevice:
 
         try:
             print("Connected to device " + str(self.device.contents.DeviceData.DeviceName.decode("ascii")))
-            return 0
+            return True
         except ValueError:
             print("Requested device not found!")
-            return -1
+            return False
+
+    def PK_ConnectToDevice_IP(self, IP, useUDP = True):
+        self.Disconnect()
+
+        IP_groups = IP.split(".")
+        if len(IP_groups) != 4:
+            return False
+
+        targetDev = sPoKeysNetworkDeviceSummary()
+        targetDev.IPaddress = (c_ubyte * 4)(*[int(g) for g in IP_groups])
+        targetDev.useUDP = 1 if useUDP else 0
+
+        print(f"* Connecting to {IP}...")
+
+        # Connect to the target device
+        devConnect = self.libObj.PK_ConnectToNetworkDevice
+        devConnect.restype = sPoKeysDevicePtr
+
+        self.device = devConnect(targetDev)
+
+        try:            
+            print("Connected to device " + str(self.device.contents.DeviceData.DeviceName.decode("ascii")))                                        
+        except ValueError:
+            print("  Requested device not found!")
+            return False
+
+        return True
 
     def PK_ConnectToDevice(self, index):
         self.Disconnect()
@@ -883,10 +941,10 @@ class PoKeysDevice:
 
         try:
             print("Connected to device " + str(self.device.contents.DeviceData.DeviceName.decode("ascii")))
-            return 0
+            return True
         except ValueError:
             print("Requested device not found!")
-            return -1
+            return False
 
 
     def Disconnect(self):

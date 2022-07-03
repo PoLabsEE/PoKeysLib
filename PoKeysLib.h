@@ -1,6 +1,6 @@
 /*
 
-   Copyright (C) 2014 Matevž Bošnak (matevz@poscope.com)
+   Copyright (C) 2014 Matevï¿½ Boï¿½nak (matevz@poscope.com)
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -418,6 +418,8 @@ typedef struct
     uint8_t         AxisEnableOutputPins[8];   // Axis enabled output pin (0 for external dedicated output)
 	uint32_t		HomeBackOffDistance[8];	   // Back-off distance after homing
     uint16_t        MPGjogDivider[8];          // Divider for the MPG jogging (enhanced encoder resolution)
+    uint8_t			FilterProbeInput;		   // Filter for the probe input
+    uint8_t         reserved[7];               // Motion buffer entries - moved further down...
 	uint8_t			AxisSignalOptions[8];	   // Axis signal options (invert step or direction)
     uint8_t         ReservedSafety[8];
 
@@ -1170,7 +1172,7 @@ POKEYSDECL int32_t PK_I2CGetStatus(sPoKeysDevice* device, uint8_t* activated);
 // Execute write to the specified address. iDataLength specifies how many bytes should be sent from the buffer (0 to 32)
 POKEYSDECL int32_t PK_I2CWriteStart(sPoKeysDevice* device, uint8_t address, uint8_t* buffer, uint8_t iDataLength);
 POKEYSDECL int32_t PK_I2CWriteAndReadStart(sPoKeysDevice* device, uint8_t address, uint8_t* buffer, uint8_t iDataLengthWrite, uint8_t iDataLengthRead);
-// Get write operation status (1 if successfull, 0 unsuccessfull, 0x10 – operation still executing)
+// Get write operation status (1 if successfull, 0 unsuccessfull, 0x10 ï¿½ operation still executing)
 POKEYSDECL int32_t PK_I2CWriteStatusGet(sPoKeysDevice* device, uint8_t* status);
 // Execute read from the specified address. iDataLength specifies how many bytes should be requested
 POKEYSDECL int32_t PK_I2CReadStart(sPoKeysDevice* device, uint8_t address, uint8_t iDataLength);

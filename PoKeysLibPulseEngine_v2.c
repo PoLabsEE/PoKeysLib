@@ -203,7 +203,7 @@ int32_t PK_PEv2_AxisConfigurationGet(sPoKeysDevice * device)
 	pe->HomeBackOffDistance[pe->param1] = *(uint32_t*)(device->response + 45);
     pe->MPGjogDivider[pe->param1] = *(uint16_t*)(device->response + 49);
 	pe->AxisSignalOptions[pe->param1] = device->response[51];
-
+	pe->FilterProbeInput = device->response[52];
     return PK_OK;
 }
 
@@ -249,11 +249,13 @@ int32_t PK_PEv2_AxisConfigurationSet(sPoKeysDevice * device)
 	device->request[41] = pe->FilterLimitPSwitch[pe->param1];
 	device->request[42] = pe->FilterHomeSwitch[pe->param1];
 	device->request[43] = pe->HomingAlgorithm[pe->param1];
+	device->request[44] = 0;
 
 	*(uint32_t*)(device->request + 45) = pe->HomeBackOffDistance[pe->param1];
     *(uint16_t*)(device->request + 49) = pe->MPGjogDivider[pe->param1];
 
 	device->request[51] = pe->AxisSignalOptions[pe->param1];
+	device->request[52] = pe->FilterProbeInput;
 
     // Send request
     return SendRequest(device);
