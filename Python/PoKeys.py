@@ -90,7 +90,8 @@ class ePK_DeviceTypeMask():
     PK_DeviceMask_57CNC               = (1<<26)   
     PK_DeviceMask_57CNCdb25           = (1<<27)   
     PK_DeviceMask_57Utest             = (1<<28)   
-    PK_DeviceMask_58                  = (1<<21)   
+    PK_DeviceMask_57CNCpro4x25        = (1<<29)
+    PK_DeviceMask_58                  = (1<<21)
     PK_DeviceMask_PoPLC58             = (1<<22)   
     PK_DeviceMask_PoKeys16RF          = (1<<23)   
 
@@ -112,6 +113,7 @@ class ePK_DeviceTypeID():
     PK_DeviceID_57U           = 30        
     PK_DeviceID_57E           = 31        
     PK_DeviceID_PoKeys57CNC   = 32
+    PK_DeviceID_PoKeys57CNCpro4x25 = 33
     PK_DeviceID_PoKeys57CNCdb25 = 38        
     PK_DeviceID_PoKeys57Utest   = 39        
     PK_DeviceID_57U_v0        = 28
@@ -1158,6 +1160,9 @@ class PoKeysDevice:
     # Execute the move. Position or speed is specified by the ReferencePositionSpeed
     def PK_PEv2_PulseEngineMove(self):
         return self.libObj.PK_PEv2_PulseEngineMove(self.device)
+    # Execute the move in PV mode
+    def PK_PEv2_PulseEngineMovePV(self):
+        return self.libObj.PK_PEv2_PulseEngineMovePV(self.device)
     # Read external outputs state - save them to ExternalRelayOutputs and ExternalOCOutputs
     def PK_PEv2_ExternalOutputsGet(self):
         return self.libObj.PK_PEv2_ExternalOutputsGet(self.device)
@@ -1687,9 +1692,9 @@ class PoKeysDevice:
         return []
     def PK_PoILWriteSharedSlot(self, firstSlot, slotsData):
         #return self.libObj.PK_PoILWriteSharedSlot(self.device, uint16_t firstSlotID, uint16_t slotsNum, int32_t * src)
-        return 0;
+        return []
     def PK_PoILTaskStatus(self):
-        return self.libObj.PK_PoILTaskStatus(sPoKeysDevice * device)
+        return self.libObj.PK_PoILTaskStatus(self.device)
 
     # RTC commands (real-time clock)
     def PK_RTCGet(self):

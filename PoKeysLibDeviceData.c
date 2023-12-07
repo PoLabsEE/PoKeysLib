@@ -135,7 +135,62 @@ const sPoKeys_DeviceDescriptor deviceDesc[] = {
 		  { -1, CAP( -1) }
       }},
 
-	  // PoKeys57CNC Pins descriptor
+    // PoKeys57CNCpro4x25 Pins descriptor
+    { PK_DeviceID_PoKeys57CNCpro4x25,  {
+
+          // Ultra-fast encoder pins
+          { 8,  CAP( PIN_DIO ) },
+          { 12, CAP( PIN_DIO ) },
+          { 13, CAP( PIN_DIO ) },
+
+          // Spindle error
+          { 14, CAP( PIN_DI ) },
+
+          // 0-10V output
+          { 17, CAP( PIN_DO, PK_AllPinCap_PWMOut ) },
+
+          // MOT - fault 2, 1, 4, 3
+          { 18, CAP( PIN_DI ) },
+          { 28, CAP( PIN_DI ) },
+          { 29, CAP( PIN_DI ) },
+          { 30, CAP( PIN_DI ) },
+
+          // Probe
+          { 19, CAP( PIN_DI ) },
+
+          // PWM out, pin 20
+          { 20, CAP( PIN_DO, PK_AllPinCap_PWMOut) },
+
+          // Axis limit 4, 3, 2, 1
+          { 23, CAP( PIN_DI ) },
+          { 24, CAP( PIN_DI ) },
+          { 25, CAP( PIN_DI ) },
+          { 26, CAP( PIN_DI ) },
+
+          // PoExtension2 connector pins
+          { 31, CAP( PIN_DIO ) },
+          { 32, CAP( PIN_DIO ) },
+          { 33, CAP( PIN_DIO ) },
+          { 34, CAP( PIN_DIO ) },
+          { 35, CAP( PIN_DIO ) },
+          { 36, CAP( PIN_DIO ) },
+          { 37, CAP( PIN_DIO ) },
+          { 38, CAP( PIN_DIO ) },
+
+          // Analog inputs
+          { 41, CAP( PIN_DI, PK_AllPinCap_analogInput ) }, // AnalogInput_0_10V
+          { 42, CAP( PIN_DI, PK_AllPinCap_analogInput ) }, // PlasmaIn_0_10V
+          { 43, CAP( PIN_DI, PK_AllPinCap_analogInput ) }, // AIN_24V
+          { 44, CAP( PIN_DI, PK_AllPinCap_analogInput ) }, // NTC_Temperature
+
+          // Emergency switch input
+          { 52, CAP( PIN_DI ) },
+
+          // End of pin list
+          { -1, CAP( -1) }
+      }},
+
+      // PoKeys57CNCdb25 Pins descriptor
 	  { PK_DeviceID_PoKeys57CNCdb25,  {
 		  { 1, CAP( PIN_DO ) },
 		  { 2, CAP( PIN_DO ) },
@@ -215,22 +270,6 @@ const sPoKeys_PinCapabilities pinCaps[] = {
     { PK_AllPinCap_digitalOutput,      20, 27, 0, PK_DeviceMask_PoPLC58 },
     { PK_AllPinCap_analogInput,         1,  8, 0, PK_DeviceMask_PoPLC58 },
     { PK_AllPinCap_MFanalogInput,       1,  8, 0, PK_DeviceMask_PoPLC58 },
-
-    /*
-    { PK_AllPinCap_digitalInput,        1, 6, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_digitalInput,        1, 6, 0, PK_DeviceMask_57CNC },
-
-
-    { PK_AllPinCap_digitalOutput,       1, 55, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_analogInput,        43, 47, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_analogInput,        41, 47, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_analogOutput,       43, 43, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_keyboardMapping,     1, 55, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_triggeredInput,      1, 55, 0, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_digitalCounter,      1, 55, 1, PK_DeviceMask_57CNC },
-    { PK_AllPinCap_PWMOut,             17, 22, 0, PK_DeviceMask_57CNC },
-        */
-
     { -1, 0, 0, 0 }
 };
 
@@ -526,6 +565,14 @@ int32_t PK_DeviceDataGet(sPoKeysDevice* device)
                 data->DeviceTypeID = PK_DeviceMask_57 | PK_DeviceMask_57CNC;
                 break;
 
+            // PoKeys57CNCpro4x25
+            case PK_DeviceID_PoKeys57CNCpro4x25:
+                devSeries57 = 1;
+                devEth = 1;
+                devUSB = 1;
+                data->DeviceTypeID = PK_DeviceMask_57 | PK_DeviceMask_57CNCpro4x25;
+                break;
+
 			// PoKeys57CNCdb25
             case PK_DeviceID_PoKeys57CNCdb25:
                 devSeries57 = 1;
@@ -606,6 +653,9 @@ int32_t PK_DeviceDataGet(sPoKeysDevice* device)
             break;
         case PK_DeviceID_PoKeys57CNC:
             sprintf(data->DeviceTypeName, "PoKeys57CNC");
+            break;
+        case PK_DeviceID_PoKeys57CNCpro4x25:
+            sprintf(data->DeviceTypeName, "PoKeys57CNCpro4x25");
             break;
         case PK_DeviceID_PoKeys57CNCdb25:
             sprintf(data->DeviceTypeName, "PoKeys57CNCdb25");
@@ -714,6 +764,16 @@ int32_t PK_DeviceDataGet(sPoKeysDevice* device)
 
         // PoKeys57CNC
         case PK_DeviceID_PoKeys57CNC:
+            info->iPinCount = 55;
+            info->iEncodersCount = 26;
+            info->iBasicEncoderCount = 25;
+            info->iPWMCount = 6;
+
+            device->info.PWMinternalFrequency = 25000000;
+            break;
+
+        // PoKeys57CNCpro4x25
+        case PK_DeviceID_PoKeys57CNCpro4x25:
             info->iPinCount = 55;
             info->iEncodersCount = 26;
             info->iBasicEncoderCount = 25;
@@ -1146,6 +1206,7 @@ int32_t PK_CheckPinCapabilityByTypeID(uint64_t deviceID, uint32_t pin, ePK_AllPi
         // New approach
 		case PK_DeviceID_PoKeys57CNCdb25:
         case PK_DeviceID_PoKeys57CNC:
+        case PK_DeviceID_PoKeys57CNCpro4x25:
 		case PK_DeviceID_OEM1:
             // Find the device in the device list
             //if (cap == PK_AllPinCap_digitalCounter) return PK_IsCounterAvailableByDevice(deviceTypeMask, pin);

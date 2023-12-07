@@ -16,7 +16,6 @@
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
-from tkinter.tix import Tree
 from tokenize import Triple
 from PoKeys import *
 
@@ -33,7 +32,6 @@ mydevice = PoKeysDevice("./PoKeyslib.dll")
 
 print("List of detected devices ------------------------------------")
 mydevice.ShowAllDevices(1000)
-
 
 if deviceIP is None:
     # Connect to a specific PoKeys device, use UDP connection
@@ -318,10 +316,11 @@ def PEv2_example1(dev):
             dev.PK_PEv2_StatusGet()
             time.sleep(0.01)
 
-        print("Go to +5000")
-        # Go to +5000
+        print("Go to +5000 at half the speed")
+        # Go to +5000 at half the speed (using Position-Velocity mode) - requires FW 4.4.7 or newer
         dev.device.contents.PEv2.ReferencePositionSpeed[0] = 5000
-        dev.PK_PEv2_PulseEngineMove()
+        dev.device.contents.PEv2.ReferenceVelocityPV[0] = 0.5
+        dev.PK_PEv2_PulseEngineMovePV()
 
         # Wait for position...
         for wait in range(200):

@@ -1,6 +1,6 @@
 /*
 
-   Copyright (C) 2014 Matev� Bo�nak (matevz@poscope.com)
+   Copyright (C) 2014 Matevž Bošnak (matevz@poscope.com)
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -145,6 +145,7 @@ typedef enum
     PK_DeviceMask_57CNC         = (1<<26),
 	PK_DeviceMask_57CNCdb25     = (1<<27),
     PK_DeviceMask_57Utest       = (1<<28),
+    PK_DeviceMask_57CNCpro4x25  = (1<<29),
 
 
     PK_DeviceMask_58            = (1<<21),
@@ -173,6 +174,7 @@ typedef enum
     PK_DeviceID_57U           = 30,
     PK_DeviceID_57E           = 31,
     PK_DeviceID_PoKeys57CNC   = 32,
+    PK_DeviceID_PoKeys57CNCpro4x25 = 33,
 	PK_DeviceID_PoKeys57CNCdb25 = 38,
     PK_DeviceID_PoKeys57Utest = 39,
 
@@ -421,7 +423,9 @@ typedef struct
     uint8_t			FilterProbeInput;		   // Filter for the probe input
     uint8_t         reserved[7];               // Motion buffer entries - moved further down...
 	uint8_t			AxisSignalOptions[8];	   // Axis signal options (invert step or direction)
-    uint8_t         ReservedSafety[8];
+
+    float           ReferenceVelocityPV[8];    // Reference velocity in PV mode (between 0.0 and 1.0) as ratio of max. speed
+    uint8_t         ReservedSafety[8];         // 8-bytes reserved
 
     // ------ 64-bit region boundary ------
     uint8_t         PulseEngineEnabled;        // Pulse engine enabled status, also number of enabled axes
@@ -506,7 +510,10 @@ typedef struct
 	uint32_t		EncoderIndexCount;
 	uint32_t		EncoderTicksPerRotation;
 	uint32_t		EncoderVelocity;
-	//uint32_t		reservedEnc;
+    uint32_t		reservedEnd;
+
+    uint8_t         InternalDriverStepConfig[4];
+    uint8_t         InternalDriverCurrentConfig[4];
 
 } sPoKeysPEv2;
 
@@ -743,6 +750,10 @@ typedef struct
     uint32_t         CoreDebugMode;
     uint32_t         CoreDebugBreakpoint;
     uint32_t 		 ExternalCoreID;
+
+    uint32_t         ExceptionLocation;
+    uint32_t         reserved_for_64;
+    uint32_t         ExceptionDescription[4];
 
     sPoILStack       functionStack;
     sPoILStack       dataStack;
@@ -1113,6 +1124,8 @@ POKEYSDECL int32_t PK_PEv2_PositionSet(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_PulseEngineStateSet(sPoKeysDevice * device);
 // Execute the move. Position or speed is specified by the ReferencePositionSpeed
 POKEYSDECL int32_t PK_PEv2_PulseEngineMove(sPoKeysDevice * device);
+// Execute the move in PV (position-velocity) mode. Position is specified by the ReferencePositionSpeed, relative velocity by ReferenceVelocityPV - requires FW 4.4.7 or newer
+POKEYSDECL int32_t PK_PEv2_PulseEngineMovePV(sPoKeysDevice * device);
 // Read external outputs state - save them to ExternalRelayOutputs and ExternalOCOutputs
 POKEYSDECL int32_t PK_PEv2_ExternalOutputsGet(sPoKeysDevice * device);
 // Set external outputs state (from ExternalRelayOutputs and ExternalOCOutputs)
@@ -1146,6 +1159,10 @@ POKEYSDECL int32_t PK_PEv2_ProbingFinish(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_ProbingFinishSimple(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_SyncedPWMSetup(sPoKeysDevice * device, uint8_t enabled, uint8_t srcAxis, uint8_t dstPWMChannel);
 POKEYSDECL int32_t PK_PEv2_SyncOutputsSetup(sPoKeysDevice * device);
+
+// Get/Set internal motor drivers parameters
+POKEYSDECL int32_t PK_PEv2_InternalDriversConfigurationGet(sPoKeysDevice * device);
+POKEYSDECL int32_t PK_PEv2_InternalDriversConfigurationSet(sPoKeysDevice * device);
 
 POKEYSDECL int32_t PK_PEv2_ThreadingPrepareForTrigger(sPoKeysDevice * device);
 POKEYSDECL int32_t PK_PEv2_ThreadingForceTriggerReady(sPoKeysDevice * device);
@@ -1260,6 +1277,7 @@ POKEYSDECL int32_t PK_CANConfigure(sPoKeysDevice* device, uint32_t bitrate);
 POKEYSDECL int32_t PK_CANRegisterFilter(sPoKeysDevice* device, uint8_t format, uint32_t CANid);
 POKEYSDECL int32_t PK_CANWrite(sPoKeysDevice* device, sPoKeysCANmsg * msg);
 POKEYSDECL int32_t PK_CANRead(sPoKeysDevice* device, sPoKeysCANmsg * msg, uint8_t * status);
+POKEYSDECL int32_t PK_CANFlush(sPoKeysDevice* device);
 
 // WS2812 commands
 POKEYSDECL int32_t PK_WS2812_Update(sPoKeysDevice* device, uint16_t LEDcount, uint8_t updateFlag);

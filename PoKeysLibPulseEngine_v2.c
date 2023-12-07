@@ -307,6 +307,28 @@ int32_t PK_PEv2_PulseEngineMove(sPoKeysDevice * device)
     return SendRequest(device);
 }
 
+
+// Execute the move. Position or speed is specified by the ReferencePositionSpeed
+int32_t PK_PEv2_PulseEngineMovePV(sPoKeysDevice * device)
+{
+    int i;
+    uint16_t tmpVelocity;
+
+    if (device == NULL) return PK_ERR_NOT_CONNECTED;
+
+    // Create request
+    CreateRequest(device->request, 0x85, 0x25, device->PEv2.param2, 0, 0);
+
+    memcpy(&device->request[8], device->PEv2.ReferencePositionSpeed, 8*4);
+    for (i = 0; i < 8; i++) {
+        tmpVelocity = (uint16_t)(device->PEv2.ReferenceVelocityPV[i] * 65535);
+        memcpy(&device->request[40 + i * 2], &tmpVelocity, 2);
+    }
+
+    // Send request
+    return SendRequest(device);
+}
+
 // Read external outputs state - save them to ExternalRelayOutputs and ExternalOCOutputs
 int32_t PK_PEv2_ExternalOutputsGet(sPoKeysDevice * device)
 {
@@ -902,3 +924,43 @@ int32_t PK_PoStep_DriverConfigurationSet(sPoKeysDevice * device)
 	return PK_OK;
 }
 
+// Retrieve internal motor drivers parameters
+int32_t PK_PEv2_InternalDriversConfigurationGet(sPoKeysDevice * device)
+{
+    sPoKeysPEv2 * pe;
+    if (device == NULL) return PK_ERR_NOT_CONNECTED;
+
+    // Send request
+    CreateRequest(device->request, 0x85, 0x18, 0, 0, 0);
+    if (SendRequest(device) != PK_OK) return PK_ERR_TRANSFER;
+
+    // Pointer to PEv2 structure for better code readability
+    pe = &device->PEv2;
+
+    for (int32_t i = 0; i < 4; i++) {
+        pe->InternalDriverStepConfig[i] = device->response[8 + i*2];
+        pe->InternalDriverCurrentConfig[i] = device->response[9 + i*2];
+    }
+    return PK_OK;
+}
+
+// Set internal motor drivers parameters
+int32_t PK_PEv2_InternalDriversConfigurationSet(sPoKeysDevice * device)
+{
+    sPoKeysPEv2 * pe;
+    if (device == NULL) return PK_ERR_NOT_CONNECTED;
+
+    // Create request
+    CreateRequest(device->request, 0x85, 0x19, 0, 0, 0);
+
+    // Pointer to PEv2 structure for better code readability
+    pe = &device->PEv2;
+
+    for (int32_t i = 0; i < 4; i++) {
+        device->request[8 + i*2] = pe->InternalDriverStepConfig[i];
+        device->request[9 + i*2] = pe->InternalDriverCurrentConfig[i];
+    }
+
+    // Send request
+    return SendRequest(device);
+}

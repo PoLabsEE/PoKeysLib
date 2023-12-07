@@ -98,6 +98,7 @@ Author: Matevž Bošnak (matevz@poscope.com)
 
 
 ---- Change log ----
+07.12.2023: New Move PV command added to the PoKeysLib
 23.06.2022: Updated PoKeysLib
 27.01.2018: Added support for failsafe settings
 17.02.2017: Support for new firmware features, UART, CAN, updated wrappers, prebuilt binaries

@@ -308,6 +308,14 @@ int32_t PK_IsCounterAvailableByDevice(uint32_t deviceTypeMask, uint8_t pinID)
                                 1,	1,	1,	1,	0,  0,  0,  0,  0,  0,
                                 0,  0,  0,	0,  0};
 
+    //                              1   2   3   4   5   6   7   8   9   10
+    int counters_57CNCpro4x25[] = { 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+                                    0,  0,  0,  0,  0,  0,  0,  0,  1,  0,
+                                    0,	0,	0,  0,  0,  0,	0,  0,	0,	0,
+                                    0,	0,	0,  0,  0,  0,	0,  0,	0,	0,
+                                    0,	0,	0,  0,  0,  0,	0,  0,	0,	0,
+                                    0,  0,  0,	0,  0};
+
     if (deviceTypeMask & PK_DeviceMask_Bootloader) return 0;
 
 	if ((deviceTypeMask & PK_DeviceMask_PoPLC58) || (deviceTypeMask & PK_DeviceMask_57CNCdb25))
@@ -318,6 +326,7 @@ int32_t PK_IsCounterAvailableByDevice(uint32_t deviceTypeMask, uint8_t pinID)
         if (pinID >= 55) return 0;
 
         if (deviceTypeMask & PK_DeviceMask_57CNC) return counters_57CNC[pinID];
+        if (deviceTypeMask & PK_DeviceMask_57CNCpro4x25) return counters_57CNCpro4x25[pinID];
         if (!(deviceTypeMask & (PK_DeviceMask_56 | PK_DeviceMask_57))) return 0;
         return counterSupported[pinID];
     }
@@ -365,6 +374,9 @@ int32_t PK_IsCounterAvailableByTypeID(uint32_t deviceTypeID, uint8_t pinID)
             if (pinID >= 55) return 0;
             return counters_57CNC[pinID];
 
+        case PK_DeviceID_PoKeys57CNCpro4x25:
+            if (pinID == 18) return 1;
+            else return 0;
         case PK_DeviceID_58EU:
             return 0;
         case PK_DeviceID_PoPLC58:
