@@ -319,6 +319,7 @@ def PEv2_example1(dev):
         print("Go to +5000 at half the speed")
         # Go to +5000 at half the speed (using Position-Velocity mode) - requires FW 4.4.7 or newer
         dev.device.contents.PEv2.ReferencePositionSpeed[0] = 5000
+        dev.device.contents.PEv2.param2 = 1 # Only axis 0 (bit 0 set)
         dev.device.contents.PEv2.ReferenceVelocityPV[0] = 0.5
         dev.PK_PEv2_PulseEngineMovePV()
 
