@@ -326,6 +326,7 @@ class sPoKeysPEv2(Structure):
         ("reserved", c_uint8*7),
 
         ("AxisSignalOptions", c_uint8*8),      # Axis signal options (invert step or direction)
+        ("ReferenceVelocityPV", c_float*8),    # Reference velocity in PV mode (between 0.0 and 1.0) as ratio of max. speed
         ("ReservedSafety", c_uint8*8),
 
             # ------ 64-bit region boundary ------
