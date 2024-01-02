@@ -61,9 +61,6 @@ before compiling PoKeysLib.
 
 The host system is assumed to be little-endian.
 
-Example code: 
-http://www.mypokeys.com/new-cross-platform-library-for-all-pokeys-devices
-
 
 ---- Library status - verified commands ----
 [x] Enumerating USB devices
@@ -92,10 +89,6 @@ http://www.mypokeys.com/new-cross-platform-library-for-all-pokeys-devices
 [x] PoIL operations
 [x] 1-wire operations
 [x] PoNET bus support
-
----- Credits ----
-Author: Matevž Bošnak (matevz@poscope.com)
-
 
 ---- Change log ----
 07.12.2023: New Move PV command added to the PoKeysLib
