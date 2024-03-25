@@ -784,7 +784,7 @@ sPoKeysDevicePtr = POINTER(sPoKeysDevice)
 # Network device structure - used for network device enumeration
 class sPoKeysNetworkDeviceSummary(Structure):
     _fields_ = [
-        ("SerialNumber", c_long),      # Serial number
+        ("SerialNumber", c_uint32),      # Serial number
         ("IPaddress", c_ubyte*4),      # IP address of the device
         ("hostIP", c_ubyte*4),      # IP address of the host PC
         ("FirmwareVersionMajor", c_ubyte),    # Firmware version - major
